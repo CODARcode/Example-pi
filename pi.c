@@ -11,6 +11,29 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include <assert.h>
+
+
+/**
+ * Compute the partial sum with nterms terms of the power series for
+ *      atan(x) = x - x^3/3 + x^5/5 - x^7/7 + ...
+ * Note that this converges for |x| < 1 and x = 1.
+ */
+long double atan_pseries(long double x, long int nterms) {
+    assert(x <= 1 || x > -1);
+    long double total = x;
+    int plus_minus = -1;
+    long double xpower = powl(x, 3);
+    long double denom = 3;
+    long double x2 = x*x;
+    for (long int i=1; i<nterms; i++) {
+        total += plus_minus * xpower / denom;
+        denom += 2;
+        xpower *= x2;
+        plus_minus *= -1;
+    }
+    return total;
+}
 
 
 /**
@@ -52,6 +75,12 @@ long double pi_trap_integration(long double n) {
 }
 
 
+long double pi_atan_pseries(long int nterms) {
+    return (16 * atan_pseries(1.0L/5, nterms)
+           - 4 * atan_pseries(1.0L/239, nterms));
+}
+
+
 void print_usage(FILE *out, char *prog_name) {
     fprintf(out, "Usage: %s method iterations\n", prog_name);
 }
@@ -77,6 +106,8 @@ int main(int argc, char **argv) {
         pi_approx = pi_monte_carlo_integration(niters);
     } else if (strcmp(method, "trap") == 0) {
         pi_approx = pi_trap_integration(niters);
+    } else if (strcmp(method, "atan") == 0) {
+        pi_approx = pi_atan_pseries(niters);
     } else {
         print_usage(stderr, argv[0]);
         exit(2);

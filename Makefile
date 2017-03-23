@@ -2,4 +2,8 @@
 all: pi
 
 pi: pi.c
-	gcc -std=c99 -lm -o pi pi.c
+	gcc -std=gnu99 -lm -O3 -o pi pi.c
+
+.PHONY: clean
+clean:
+	rm -rf pi
