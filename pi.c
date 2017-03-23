@@ -75,6 +75,11 @@ long double pi_trap_integration(long double n) {
 }
 
 
+/**
+ * Compute pi using Machin's formula:
+ *   pi/4 = 4 arctan(1/5) - arctan(1/239)
+ * and partial sums of the Taylor series for arctan.
+ */
 long double pi_atan_pseries(long int nterms) {
     return (16 * atan_pseries(1.0L/5, nterms)
            - 4 * atan_pseries(1.0L/239, nterms));
