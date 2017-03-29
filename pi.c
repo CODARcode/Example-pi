@@ -1,5 +1,7 @@
 /**
- * Calculate approximations of pi using different methods.
+ * Calculate approximations of pi using different methods, and long
+ * double type. Assuming 128 bits, can only calculate around ~36 decimal
+ * digits. See pi-gmp.c for arbitrary precision version.
  *
  * Usage: pi method n
  *
