@@ -20,36 +20,44 @@
  * Compute the partial sum with nterms terms of the power series for
  *      atan(x) = x - x^3/3 + x^5/5 - x^7/7 + ...
  * Note that this converges for |x| < 1 and x = 1. Result is stored in y.
+ *
+ * Implements special case where x = 1/b, which is the common form of
+ * terms used for Machin-like pi formula. Uses str for b to allow
+ * higher precision.
  */
-void atan_pseries(mpf_t y, mpf_t x, unsigned long nterms) {
-    mpf_t xpower, x2, denom, tmp;
+void atan_pseries(mpf_t y, char *b_str, unsigned long nterms) {
+    mpf_t b, term, minus_b2, denom, tmp;
 
-    mpf_init(xpower);
+    mpf_init_set_str(b, b_str, 10);
+    mpf_init(term);
     mpf_init(denom);
-    mpf_init(x2);
+    mpf_init(minus_b2);
     mpf_init(tmp);
 
-    bool is_minus = true;
-    mpf_set(y, x);
-    mpf_pow_ui(xpower, x, 3);
-    mpf_pow_ui(x2, x, 2);
-    mpf_set_ui(denom, 3);
+    // y = x = 1/b
+    mpf_set_ui(y, 1);
+    mpf_div(y, y, b);
+
+    // term = x = 1/b
+    mpf_set(term, y);
+
+    mpf_pow_ui(minus_b2, b, 2);
+    mpf_neg(minus_b2, minus_b2);
+    mpf_set_ui(denom, 1);
 
     for (long int i=1; i<nterms; i++) {
-        // y += plus_minus * xpower / denom;
-        mpf_div(tmp, xpower, denom);
-        if (is_minus)
-            mpf_neg(tmp, tmp);
-        mpf_add(y, y, tmp);
-
+        // denom += 2, i.e. denom = (2i + 1)
         mpf_add_ui(denom, denom, 2);
-        mpf_mul(xpower, xpower, x2);
-        is_minus = !is_minus;
+        // term /= -b^2
+        mpf_div(term, term, minus_b2);
+        mpf_div(tmp, term, denom);
+        mpf_add(y, y, tmp);
     }
 
-    mpf_clear(xpower);
+    mpf_clear(b);
+    mpf_clear(term);
+    mpf_clear(minus_b2);
     mpf_clear(denom);
-    mpf_clear(x2);
     mpf_clear(tmp);
 }
 
@@ -60,28 +68,61 @@ void atan_pseries(mpf_t y, mpf_t x, unsigned long nterms) {
  * and partial sums of the Taylor series for arctan.
  */
 void pi_atan_pseries(mpf_t pi, unsigned long nterms) {
-    mpf_t a, b, tmp;
-
+    mpf_t tmp;
     mpf_init(tmp);
-    // a = 1 / 5
-    mpf_init_set_ui(a, 1);
-    mpf_div_ui(a, a, 5);
-    // b = 1 / 239
-    mpf_init_set_ui(b, 1);
-    mpf_div_ui(b, b, 239);
 
-    // 16 * atan_pseries(1.0L/5, nterms)
-    atan_pseries(tmp, a, nterms);
-    mpf_mul_ui(tmp, tmp, 16);
-    mpf_set(pi, tmp);
+    // 4 * atan(1/5)
+    atan_pseries(pi, "5", nterms);
+    mpf_mul_ui(pi, pi, 4);
 
-    // - 4 * atan_pseries(1.0L/239, nterms));
-    atan_pseries(tmp, b, nterms);
-    mpf_mul_ui(tmp, tmp, 4);
+    // - atan(1/239)
+    atan_pseries(tmp, "239", nterms);
     mpf_sub(pi, pi, tmp);
 
-    mpf_clear(a);
-    mpf_clear(b);
+    mpf_mul_ui(pi, pi, 4);
+
+    mpf_clear(tmp);
+}
+
+
+/**
+ * Compute pi using Machin-like formula:
+ *   pi/4 = 183 arctan(1/239) + 32 arctan(1/1023) - 68 arctan (1/5832)
+ *          + 12 arctan(1/110443) - 12 arctan(1/4841182)
+ *          - 100 arctan(1/6826318)
+ * and partial sums of the Taylor series for arctan.
+ *
+ * NB: this converges faster than atan above, but takes longer per iteration.
+ */
+void pi_atan2_pseries(mpf_t pi, unsigned long nterms) {
+    mpf_t tmp;
+    mpf_init(tmp);
+
+    atan_pseries(pi, "239", nterms);
+    mpf_mul_ui(pi, pi, 183);
+
+    atan_pseries(tmp, "1023", nterms);
+    mpf_mul_ui(tmp, tmp, 32);
+    mpf_add(pi, pi, tmp);
+
+    atan_pseries(tmp, "5832", nterms);
+    mpf_mul_ui(tmp, tmp, 68);
+    mpf_sub(pi, pi, tmp);
+
+    atan_pseries(tmp, "110443", nterms);
+    mpf_mul_ui(tmp, tmp, 12);
+    mpf_add(pi, pi, tmp);
+
+    atan_pseries(tmp, "4841182", nterms);
+    mpf_mul_ui(tmp, tmp, 12);
+    mpf_sub(pi, pi, tmp);
+
+    atan_pseries(tmp, "6826318", nterms);
+    mpf_mul_ui(tmp, tmp, 100);
+    mpf_sub(pi, pi, tmp);
+
+    mpf_mul_ui(pi, pi, 4);
+
     mpf_clear(tmp);
 }
 
@@ -194,6 +235,8 @@ int main(int argc, char **argv) {
         pi_trap_integration(pi_approx, niters);
     } else if (strcmp(method, "atan") == 0) {
         pi_atan_pseries(pi_approx, niters);
+    } else if (strcmp(method, "atan2") == 0) {
+        pi_atan2_pseries(pi_approx, niters);
     } else {
         print_usage(stderr, argv[0]);
         exit(2);
