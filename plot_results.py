@@ -24,7 +24,7 @@ def compare_pi_digits(result_path):
     Return (correct_digits, incorrect_digits)
     """
     with open(result_path) as result_file:
-        result = result_file.read()
+        result = result_file.read().strip()
         if PI_DIGITS[0] != result[0]:
             return 0, len(result)
         if result[1] != '.':
@@ -53,7 +53,7 @@ def load_pi_reference():
     global PI_DIGITS
     ref_path = os.path.join(os.path.dirname(__file__), 'pi1M.txt')
     with open(ref_path) as ref_file:
-        PI_DIGITS = ref_file.read()
+        PI_DIGITS = ref_file.read().strip()
 
 
 def main():
