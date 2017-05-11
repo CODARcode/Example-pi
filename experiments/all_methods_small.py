@@ -11,6 +11,7 @@ class SmallPiExperiment(Experiment):
     # with different options. Could be modeled as p.ParamExecutable.
     app_exe = "pi-gmp"
     supported_machines = ['titan', 'local']
+    post_process_script = "experiments/post_process.py"
 
     runs = [
      p.SchedulerGroup(nodes=1,
